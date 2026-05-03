@@ -24,9 +24,11 @@ import {
   timeStringToDate,
   formatLiters,
 } from '../utils/dateUtils';
+import notifee, { TriggerType, AndroidImportance } from '@notifee/react-native';
 import {
   scheduleAllNotifications,
   cancelAllNotifications,
+  checkExactAlarmPermission,
 } from '../utils/notifications';
 
 export const SettingsScreen: React.FC = () => {
@@ -104,6 +106,48 @@ export const SettingsScreen: React.FC = () => {
       await scheduleAllNotifications(settings);
       Alert.alert('Schedule Updated', 'Your reminder schedule has been updated.');
     }
+  };
+
+  const handleTestNotification = async () => {
+    const hasAlarm = await checkExactAlarmPermission();
+    if (!hasAlarm) {
+      Alert.alert(
+        'Alarm Permission Missing',
+        'Cannot schedule test — please grant Alarms & Reminders permission first via "Start Reminders" on the Home screen.',
+      );
+      return;
+    }
+
+    const fireAt = Date.now() + 10 * 1000;
+    await notifee.createChannel({
+      id: 'highdrator_reminders',
+      name: 'Hydration Reminders',
+      importance: AndroidImportance.HIGH,
+    });
+    await notifee.createTriggerNotification(
+      {
+        id: `test_${fireAt}`,
+        title: '💧 Test Reminder',
+        body: `This is a test — ${settings.amountPerReminder}ml logged when you tap Done!`,
+        android: {
+          channelId: 'highdrator_reminders',
+          importance: AndroidImportance.HIGH,
+          pressAction: { id: 'default', launchActivity: 'default' },
+          actions: [
+            { title: '✅ Done', pressAction: { id: 'done' } },
+            { title: '⏭️ Pass', pressAction: { id: 'pass' } },
+            { title: '💤 Snooze 10m', pressAction: { id: 'snooze' } },
+          ],
+        },
+        data: { amount: String(settings.amountPerReminder), type: 'reminder' },
+      },
+      {
+        type: TriggerType.TIMESTAMP,
+        timestamp: fireAt,
+        alarmManager: { allowWhileIdle: true },
+      },
+    );
+    Alert.alert('Test scheduled!', 'A notification will fire in 10 seconds.\n\nYou can lock the screen or kill the app to test background handling.');
   };
 
   const SectionHeader: React.FC<{ title: string; icon: string }> = ({ title, icon }) => (
@@ -340,6 +384,20 @@ export const SettingsScreen: React.FC = () => {
           </TouchableOpacity>
         )}
 
+        {/* Test Notification */}
+        <View style={styles.section}>
+          <SectionHeader title="Developer" icon="flask-outline" />
+          <View style={styles.card}>
+            <TouchableOpacity style={styles.testBtn} onPress={handleTestNotification}>
+              <Icon name="bell-ring-outline" size={18} color={Colors.primary} />
+              <View style={styles.testBtnText}>
+                <Text style={styles.testBtnTitle}>Send Test Notification</Text>
+                <Text style={styles.testBtnSub}>Fires in 10 seconds — tests Done / Snooze / Pass</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Danger Zone */}
         <View style={styles.section}>
           <SectionHeader title="Data" icon="database-outline" />
@@ -502,6 +560,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.water10,
   },
   applyBtnText: { ...Typography.label, color: Colors.primary, fontWeight: '600' },
+
+  testBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  testBtnText: { flex: 1 },
+  testBtnTitle: { ...Typography.bodyMedium, color: Colors.primary },
+  testBtnSub: { ...Typography.caption, color: Colors.textTertiary, marginTop: 2 },
 
   dangerBtn: {
     flexDirection: 'row',
