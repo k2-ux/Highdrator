@@ -32,7 +32,9 @@ import {
   scheduleAllNotifications,
   cancelAllNotifications,
   requestNotificationPermission,
-  displayForegroundNotification,
+  checkExactAlarmPermission,
+  openExactAlarmSettings,
+  openBatteryOptimizationSettings,
 } from '../utils/notifications';
 
 export const HomeScreen: React.FC = () => {
@@ -80,14 +82,45 @@ export const HomeScreen: React.FC = () => {
       await cancelAllNotifications();
       setScheduleActive(false);
     } else {
+      // 1. Check POST_NOTIFICATIONS permission
       const hasPermission = await requestNotificationPermission();
       if (!hasPermission) {
         Alert.alert(
-          'Permission Required',
-          'Enable notifications in your device settings to receive reminders.',
+          'Notifications Blocked',
+          'Enable notifications for Highdrator in your device Settings → Apps → Highdrator → Notifications.',
         );
         return;
       }
+
+      // 2. Check SCHEDULE_EXACT_ALARM permission (Android 12+)
+      const hasAlarmPermission = await checkExactAlarmPermission();
+      if (!hasAlarmPermission) {
+        Alert.alert(
+          'Exact Alarm Permission Required',
+          'To receive reminders at the exact scheduled time, please allow "Alarms & reminders" for Highdrator.\n\nTap OK to open settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => openExactAlarmSettings() },
+          ],
+        );
+        return;
+      }
+
+      // 3. Prompt to disable battery optimization (best-effort)
+      Alert.alert(
+        'Improve Reliability',
+        'For reminders to always fire on time, disable battery optimization for Highdrator.\n\nSettings → Battery → Highdrator → Unrestricted.',
+        [
+          {
+            text: 'Open Battery Settings',
+            onPress: async () => {
+              await openBatteryOptimizationSettings();
+            },
+          },
+          { text: 'Skip', style: 'cancel' },
+        ],
+      );
+
       await scheduleAllNotifications(settings);
       setScheduleActive(true);
       Alert.alert(

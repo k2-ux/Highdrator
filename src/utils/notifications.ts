@@ -1,12 +1,14 @@
 import notifee, {
   AndroidImportance,
   AndroidColor,
+  AndroidNotificationSetting,
   EventType,
   EventDetail,
   TriggerType,
   AndroidVisibility,
   AuthorizationStatus,
 } from '@notifee/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Settings } from '../types';
 import { getNotificationTimesForDay } from './calculations';
 import { appendLogForToday } from './storage';
@@ -34,6 +36,19 @@ export async function createNotificationChannel(): Promise<void> {
 export async function requestNotificationPermission(): Promise<boolean> {
   const settings = await notifee.requestPermission();
   return settings.authorizationStatus >= AuthorizationStatus.AUTHORIZED;
+}
+
+export async function checkExactAlarmPermission(): Promise<boolean> {
+  const settings = await notifee.getNotificationSettings();
+  return settings.android.alarm === AndroidNotificationSetting.ENABLED;
+}
+
+export async function openExactAlarmSettings(): Promise<void> {
+  await notifee.openAlarmPermissionSettings();
+}
+
+export async function openBatteryOptimizationSettings(): Promise<void> {
+  await notifee.openPowerManagerSettings();
 }
 
 function buildNotificationBody(settings: Settings) {
@@ -169,7 +184,7 @@ export async function scheduleSnooze(notificationData: Record<string, string>, m
 
 async function loadSettingsFromStorage(): Promise<Settings | null> {
   try {
-    const raw = await (await import('@react-native-async-storage/async-storage')).default.getItem('highdrator-store');
+    const raw = await AsyncStorage.getItem('highdrator-store');
     if (!raw) { return null; }
     const parsed = JSON.parse(raw);
     return parsed?.state?.settings ?? null;
