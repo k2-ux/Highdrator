@@ -5,15 +5,33 @@
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
-    "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "lint": "eslint .",
+    "build-debug-apk": "cd android && ./gradlew clean && cd .. && npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res && cd android && gradlew assembleDebug && cd ..",
+    "build-release-apk": "cd android &&  ./gradlew clean && ./gradlew assembleRelease && cd ..",
+    "clean": "cd android && ./gradlew clean && cd ..",
+    "reset-cache": "react-native start --reset-cache"
   },
   "dependencies": {
+    "@notifee/react-native": "^9.1.8",
+    "@react-native-async-storage/async-storage": "^1.23.1",
+    "@react-native-community/datetimepicker": "^9.1.0",
+    "@react-native/new-app-screen": "0.85.2",
+    "@react-navigation/bottom-tabs": "^7.15.11",
+    "@react-navigation/native": "^7.2.2",
+    "@react-navigation/native-stack": "^7.14.12",
     "react": "19.2.3",
     "react-native": "0.85.2",
-    "@react-native/new-app-screen": "0.85.2",
-    "react-native-safe-area-context": "^5.5.2"
+    "react-native-gesture-handler": "^2.31.1",
+    "react-native-linear-gradient": "^2.8.3",
+    "react-native-reanimated": "^4.3.0",
+    "react-native-safe-area-context": "^5.5.2",
+    "react-native-screens": "^4.24.0",
+    "react-native-svg": "^15.15.4",
+    "react-native-vector-icons": "^10.3.0",
+    "react-native-worklets": "^0.8.1",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -26,7 +44,7 @@
     "@react-native/eslint-config": "0.85.2",
     "@react-native/jest-preset": "0.85.2",
     "@react-native/metro-config": "0.85.2",
-    "@react-native/typescript-config": "0.85.2",
+    "@react-native/typescript-config": "^0.85.2",
     "@types/jest": "^29.5.13",
     "@types/react": "^19.2.0",
     "@types/react-test-renderer": "^19.1.0",

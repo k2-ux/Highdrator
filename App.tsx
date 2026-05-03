@@ -1,45 +1,51 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useEffect } from 'react';
+import { StatusBar } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import notifee, { EventType } from '@notifee/react-native';
+import { AppNavigator } from './src/navigation/AppNavigator';
+import { Colors } from './src/constants/colors';
+import { handleNotificationBackground } from './src/utils/notifications';
+import { useStore } from './src/store/useStore';
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+function AppContent(): React.JSX.Element {
+  const syncLogsFromStorage = useStore((s) => s.syncLogsFromStorage);
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+  useEffect(() => {
+    // Sync any water logs added via background notification actions
+    syncLogsFromStorage();
+
+    // Handle foreground notification events
+    const unsubscribe = notifee.onForegroundEvent(async ({ type, detail }) => {
+      await handleNotificationBackground(type, detail);
+      if (type === EventType.ACTION_PRESS && detail.pressAction?.id === 'done') {
+        await syncLogsFromStorage();
+      }
+    });
+
+    return () => { unsubscribe(); };
+  }, [syncLogsFromStorage]);
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
-  );
-}
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
-  return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
+    <>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={Colors.primaryDark}
+        translucent={false}
       />
-    </View>
+      <AppNavigator />
+    </>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
+function App(): React.JSX.Element {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <AppContent />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
 
 export default App;
